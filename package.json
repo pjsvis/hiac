@@ -1,0 +1,49 @@
+{
+  "name": "hiac",
+  "version": "0.1.0",
+  "description": "Harness for Intelligence and Automated Context - A CLI tool for AI-assisted development with closed-loop engineering",
+  "bin": {
+    "hiac": "./dist/index.js"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "bun build ./index.ts --outdir ./dist --target bun",
+    "dev": "bun run ./index.ts",
+    "test": "bun test",
+    "check": "tsc --noEmit && bunx biome check src/ --diagnostic-level=error",
+    "lint": "bunx biome check --write .",
+    "prepublishOnly": "bun run build"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "cli",
+    "ai",
+    "ollama",
+    "openrouter",
+    "llm",
+    "assistant",
+    "code-generation"
+  ],
+  "author": "Peter Smith",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pjsvis/hiac.git"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "dependencies": {
+    "await-to-js": "^3.0.0",
+    "commander": "^13.1.0",
+    "yaml": "^2.8.2"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "bun-types": "latest"
+  }
+}

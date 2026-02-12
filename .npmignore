@@ -1,0 +1,43 @@
+# Source files
+src/
+tests/
+tsconfig.json
+biome.json
+*.test.ts
+*.spec.ts
+
+# Config files
+.hiac/
+
+# Development files
+.git/
+.gitignore
+node_modules/
+
+# Documentation files (except for diagrams README)
+.hiac/diagrams/!README.md
+
+# Build artifacts (dist is included via files field)
+# dist/ is explicitly included in package.json files
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.*
+
+# CI/CD
+.github/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

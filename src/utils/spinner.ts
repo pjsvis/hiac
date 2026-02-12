@@ -1,0 +1,1 @@
+[[".", "..", "..."], {"stop": "void;"}, {"interval": "ReturnType<typeof setInterval> | null = null;\n\n  interval = setInterval(() => {\n    const dots = FRAMES[frame % FRAMES.length];\n    process.stderr.write(", "stop": {"r": ""}}]
