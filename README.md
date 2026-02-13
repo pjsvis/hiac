@@ -17,6 +17,28 @@ A modern CLI tool that brings AI-assisted development to your terminal. Seamless
 - **Mermaid Extraction**: Automatically extracts diagrams to `./design/`
 - **Context Hydration**: Stack briefs, playbooks, and selected files
 
+## Platform Support
+
+**hiac requires Gum** for interactive features (chat mode, file selection, prompt setup).
+
+Gum is available on **macOS, Linux, and Unix-like systems only**.
+
+- ✅ macOS (via Homebrew)
+- ✅ Linux (via apt, dnf, etc.)
+- ✅ Windows (via Windows Subsystem for Linux - WSL)
+- ❌ Windows Native (no TTY support required by Gum)
+
+**Windows Users:** Install via WSL2 for full Gum functionality:
+```powershell
+wsl --install
+# After WSL setup, install Gum
+sudo apt install gum  # Ubuntu/Debian
+# Then use from WSL terminal
+hiac
+```
+
+**Native Windows Support:** One-shot mode without Gum may work via Git Bash in limited scenarios, but interactive features require WSL.
+
 ## Installation
 
 ### Prerequisites
@@ -228,7 +250,7 @@ The `bun run diagrams` script converts Mermaid diagrams from `.hiac/diagrams/` t
 
 ## Architecture
 
-For detailed process flows and system design, see the [diagrams documentation](./.hiac/diagrams/README.md).
+For detailed process flows and system design, see the [diagrams documentation](./.hiac/diagrams/README.md) and [comprehensive documentation](./docs/).
 
 ## Contributing
 

@@ -8,6 +8,8 @@ The one-shot mode processes a single prompt through AI with optional verificatio
 :::
 ```
 
+![Diagram](./diagrams/svg/oneshot-flow.svg)
+
 ## Key Flows
 
 ### With Verification Hook
