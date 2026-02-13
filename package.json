@@ -12,7 +12,8 @@
     "test": "bun test",
     "check": "tsc --noEmit && bunx biome check src/ --diagnostic-level=error",
     "lint": "bunx biome check --write .",
-    "prepublishOnly": "bun run build"
+    "prepublishOnly": "bun run build",
+    "diagrams": "bun run scripts/convert-diagrams.ts"
   },
   "files": [
     "dist/**/*",
@@ -43,6 +44,7 @@
     "yaml": "^2.8.2"
   },
   "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^10.9.0",
     "@types/bun": "latest",
     "bun-types": "latest"
   }

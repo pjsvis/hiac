@@ -67,8 +67,7 @@ bun.lockb
 
 # Project-specific temporary directories
 # .hiac/ may contain AI conversation history or cache
-briefs/
-debriefs/
+
 
 # Package manager lock files (keeping bun.lock, ignoring others if you prefer)
 # Uncomment if you want to ignore lock files

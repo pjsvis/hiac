@@ -79,6 +79,15 @@ export async function listRoles(path?: string): Promise<string[]> {
   return Array.from(roles.keys());
 }
 
+export async function listAllRoles(path?: string): Promise<Record<string, Role>> {
+  const roles = await loadRoles(path);
+  const rolesRecord: Record<string, Role> = {};
+  for (const [key, value] of roles) {
+    rolesRecord[key] = value;
+  }
+  return rolesRecord;
+}
+
 export async function printRoles(path?: string): Promise<void> {
   const roles = await loadRoles(path);
 

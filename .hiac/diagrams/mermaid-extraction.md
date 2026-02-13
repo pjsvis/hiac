@@ -4,11 +4,11 @@ Automatically extracts Mermaid diagrams from AI responses and saves to `./design
 
 ```mermaid
 flowchart TD
-    A[AI Response] --> B[Regex Search:<br/>```mermaid ...```]
+    A[AI Response] --> B[Regex Search:<br>```mermaid ...```]
     B --> C{Diagrams found?}
     C -->|No| D[Skip extraction]
     C -->|Yes| E[Extract diagram content]
-    E --> F[Prepare timestamp:<br/>YYYY-MM-DD_HH-mm-ss.svg]
+    E --> F[Prepare timestamp:<br>YYYY-MM-DD_HH-mm-ss.svg]
     F --> G{./design/ exists?}
     G -->|No| H[Create directory]
     G -->|Yes| I[Skip creation]

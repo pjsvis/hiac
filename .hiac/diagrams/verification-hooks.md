@@ -2,30 +2,10 @@
 
 Closed-loop engineering with automatic error feedback and regeneration.
 
-```mermaid
-flowchart TD
-    A[Start Verification] --> B[Get Provider]
-    B --> C[Build Messages]
-    C --> D[attempts = 0]
-    D --> E{attempts < max 3?}
-    E -->|No| F[Exit: Failure]
-    E -->|Yes| G[attempts++]
-    G --> H[[Generate Response<br/>from AI]]
-    H --> I[Stream to stdout]
-    I --> J[Execute Hook Command]
-    J --> K{Hook passed?}
-    K -->|Yes| L[Exit: Success]
-    K -->|No| M[Capture stderr/stdout]
-    M --> N[Add feedback message:<br/>"Hook failed with error..."]
-    N --> O[Add to messages:<br/>assistant + user feedback]
-    O --> P{attempts < max 3?}
-    P -->|No| F
-    P -->|Yes| G
-
-    style L fill:#e1ffe1
-    style F fill:#ffe1e1
-    style H fill:#e1f5ff
-    style J fill:#fff5e1
+```
+::: tip
+![Diagram](./diagrams/svg/verification-hooks.svg)
+:::
 ```
 
 ## Retry Logic

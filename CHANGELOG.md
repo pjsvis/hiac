@@ -2,10 +2,20 @@
 
 All notable changes to hiac will be documented in this file.
 
+## [0.2.0] - 2026-02-13
+
+### Added
+- Configuration system with global (~/.hiac/config.yaml) and local (.hiac/config.yaml) config
+- `hiac --init` command to initialize config and default folders
+- Prompt mode: `hiac` (no params) → guided setup prior to chat
+- Multi-select for brief, playbook, and system-prompt files via Gum
+- Debriefs folder for task wrap-up reports
+- Config merging: local overrides global settings
+- New diagram: config-system.md
+
 ## [0.1.0] - 2026-02-12
 
 ### Added
-- Initial release
 - Multi-provider support (Ollama local, OpenRouter cloud)
 - One-shot mode with pipe-friendly execution
 - Interactive chat mode with Gum-powered REPL

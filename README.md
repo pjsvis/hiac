@@ -41,6 +41,15 @@ winget install charmbracelet.gum
 bun install -g hiac
 ```
 
+Initialize configuration:
+```bash
+hiac --init
+```
+
+This creates:
+- `~/.hiac/config.yaml` (global config)
+- Default folders: `briefs/`, `debriefs/`, `playbooks/`, `system-prompts/`
+
 Or clone and link locally:
 
 ```bash
@@ -48,9 +57,44 @@ git clone https://github.com/pjsvis/hiac.git
 cd hiac
 bun install
 bun link
+hiac --init
+```
+
+## Configuration
+
+`hiac` uses a hierarchical config system:
+
+1. **Global**: `~/.hiac/config.yaml` (applies everywhere)
+2. **Local**: `.hiac/config.yaml` (project-specific, overrides global)
+
+**Config format:**
+```yaml
+folders:
+  briefs: ./briefs
+  debriefs: ./debriefs
+  playbooks: ./playbooks
+  system-prompts: ./system-prompts
+```
+
+Initialize with default folders:
+```bash
+hiac --init
 ```
 
 ## Usage
+
+### Prompt Mode (No Params)
+
+Run `hiac` without arguments for guided setup:
+```bash
+hiac
+```
+
+Interactive flow:
+1. Select role (includes model + system prompt)
+2. Multi-select brief files
+3. Multi-select playbook files
+4. Enter chat REPL
 
 ### One-Shot Mode
 
@@ -79,6 +123,9 @@ hiac -c
 
 # Chat with cloud model
 hiac -c -m openai/gpt-4o-mini
+
+# Chat with dialog saving
+hiac -c --save-dialog
 ```
 
 ### File Selection
@@ -162,7 +209,22 @@ bunx biome check src/ --diagnostic-level=error
 
 # Build
 bun run build
+
+# Convert Mermaid diagrams to SVG
+bun run diagrams
 ```
+
+### Diagram Conversion
+
+The `bun run diagrams` script converts Mermaid diagrams from `.hiac/diagrams/` to SVG files and embeds them in documentation.
+
+**Requirements:** `@mermaid-js/mermaid-cli` (installed as devDependency)
+
+**Output:**
+- SVGs saved to: `docs/diagrams/svg/`
+- Mermaid code blocks replaced with SVG image references
+
+**Limitations:** Complex Mermaid syntax may fail to convert. Manual adjustment of problematic diagrams may be required.
 
 ## Architecture
 

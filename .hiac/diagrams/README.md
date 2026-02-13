@@ -9,6 +9,7 @@ Mermaid diagrams documenting hiac's internal processes and system design.
 | [architecture.md](architecture.md) | Complete system overview & components   |
 | [oneshot-flow.md](oneshot-flow.md) | One-shot mode execution flow           |
 | [chat-flow.md](chat-flow.md) | Interactive chat mode REPL              |
+| [config-system.md](config-system.md) | Config loading & prompt mode setup      |
 | [verification-hooks.md](verification-hooks.md) | Auto-retry loop with error feedback     |
 | [provider-routing.md](provider-routing.md) | Ollama vs Cloud provider selection     |
 | [role-system.md](role-system.md) | Define and use predefined roles         |
