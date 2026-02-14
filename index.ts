@@ -3,7 +3,7 @@ import { Command } from "commander";
 import { startChat } from "@src/chat.ts";
 import { runOneshot } from "@src/oneshot.ts";
 import { checkGumInstalled } from "@src/utils/gum.ts";
-import { OllamaProvider } from "@src/providers/ollama.ts";
+import { getProvider, getCliProvider } from "@src/factory.ts";
 import { printRoles, getRole, buildRole } from "@src/utils/roles.ts";
 import packageJson from "./package.json" with { type: "json" };
 
@@ -91,6 +91,8 @@ program
   .option("--playbook <file>", "Load playbook directives")
   .option("--hook <command>", "Verification hook for one-shot mode")
   .option("--system <prompt>", "System prompt for the AI")
+  .option("--claude", "Use Claude CLI for this session", false)
+  .option("--gemini", "Use Gemini CLI for this session", false)
   .option("-h, --help", "Show help", false)
   .option("--init", "Initialize hiac configuration", false)
 .action(async (prompt, options) => {
@@ -152,6 +154,13 @@ program
 
     let model = options.model;
     let systemPrompt = options.system;
+    const cliProvider = getCliProvider(options.claude, options.gemini, options.kilo);
+
+    if (cliProvider) {
+      const providerName = cliProvider.constructor.name.replace("Provider", "");
+      model = model || "auto";
+      console.log(`Using ${providerName} CLI as provider`);
+    }
 
     if (options.role) {
       const role = await getRole(options.role);
@@ -179,7 +188,7 @@ program
     }
 
     if (options.chat) {
-      await startChat({ model, systemPrompt, saveDialog: options.saveDialog });
+      await startChat({ model, systemPrompt, saveDialog: options.saveDialog, provider: cliProvider || undefined });
       return;
     }
 
@@ -194,6 +203,7 @@ program
       hook: options.hook,
       system: systemPrompt,
       prompt,
+      provider: cliProvider || undefined,
     });
   });
 

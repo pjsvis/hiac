@@ -1,4 +1,4 @@
-import type { Message } from "@src/types.ts";
+import type { Message, Provider } from "@src/types.ts";
 import { getProvider } from "@src/factory.ts";
 import { gumWrite, requireGum, gumFormat } from "@src/utils/gum.ts";
 import to from "await-to-js";
@@ -7,10 +7,11 @@ export async function startChat(options: {
   model: string;
   systemPrompt?: string;
   saveDialog?: boolean;
+  provider?: Provider;
 }): Promise<void> {
   await requireGum();
 
-  const provider = getProvider(options.model);
+  const provider = options.provider || getProvider(options.model);
   const history: Message[] = [];
 
   const cleanup = async () => {

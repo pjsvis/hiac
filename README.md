@@ -10,7 +10,7 @@ A modern CLI tool that brings AI-assisted development to your terminal. Seamless
 
 ## Features
 
-- **Multi-Provider Support**: Seamlessly switch between local Ollama and cloud OpenRouter
+- **Multi-Provider Support**: Local Ollama, cloud OpenRouter, and CLI tools (Claude, Gemini, Kilo)
 - **One-Shot Mode**: Pipe-friendly execution for automation
 - **Interactive Chat Mode**: Gum-powered REPL for conversational AI
 - **Verification Hooks**: Auto-retry with error feedback until tests pass
@@ -56,6 +56,11 @@ sudo apt install gum  # or dnf install gum
 # Windows
 winget install charmbracelet.gum
 ```
+
+**Optional CLI Tools** (for `--claude`, `--gemini`, `--kilo` flags):
+- [Claude CLI](https://github.com/anthropics/claude-code): `brew install claude` or `npm install -g @anthropics/claude-code`
+- [Gemini CLI](https://github.com/google-gemini/gemini-cli): `npm install -g gemini-cli`
+- [Kilo CLI](https://github.com/marcus/proxy): `brew install marcus/tap/td`
 
 ### Install hiac
 
@@ -130,6 +135,12 @@ hiac -m llama3 "Summarize this file"
 # Cloud model (OpenRouter)
 hiac -m anthropic/claude-3-haiku "Write a test"
 
+# With Claude CLI
+hiac --claude "Summarize this code"
+
+# With Gemini CLI
+hiac --gemini -m gemini-2.0-flash "Review this file"
+
 # Pipe input
 cat error.log | hiac "What went wrong?"
 
@@ -140,11 +151,17 @@ hiac "Implement foo()" --hook "bun test"
 ### Interactive Chat Mode
 
 ```bash
-# Start chat with default model (llama3)
+# Start chat with default model
 hiac -c
 
 # Chat with cloud model
 hiac -c -m openai/gpt-4o-mini
+
+# Chat with Claude CLI
+hiac -c --claude
+
+# Chat with Gemini CLI
+hiac -c --gemini
 
 # Chat with dialog saving
 hiac -c --save-dialog
@@ -165,9 +182,18 @@ hiac "Review the architecture" --brief ./briefs/architecture.md --playbook ./pla
 | Variable | Description |
 |----------|-------------|
 | `OPENROUTER_API_KEY` | Required for cloud models (OpenRouter) |
+| `ANTHROPIC_API_KEY` | Required for Claude CLI |
+| `GOOGLE_API_KEY` | Required for Gemini CLI |
 
 ```bash
+# Cloud models
 export OPENROUTER_API_KEY=your-key-here
+
+# Claude CLI
+export ANTHROPIC_API_KEY=sk-ant-...
+
+# Gemini CLI
+export GOOGLE_API_KEY=your-key-here
 ```
 
 ## Model Routing
@@ -178,6 +204,16 @@ export OPENROUTER_API_KEY=your-key-here
 | `gpt-4`, `gpt-4o-mini` | OpenRouter (cloud) |
 | `anthropic/claude-*` | OpenRouter (cloud) |
 | `openai/*` | OpenRouter (cloud) |
+
+### CLI Tool Flags
+
+| Flag | Purpose | Requires |
+|------|---------|----------|
+| `--claude` | Use Claude CLI | Claude CLI installed |
+| `--gemini` | Use Gemini CLI | Gemini CLI installed |
+| `--kilo` | Use Kilo CLI | Kilo CLI installed |
+
+CLI tools provide context-aware AI for documents but lack native tool capabilities. Use these flags when you want to pass briefs, playbooks, and files to external CLI tools.
 
 ## Verification Hooks
 
@@ -206,7 +242,8 @@ hiac/
 │   ├── hooks.ts          # Verification logic
 │   ├── providers/
 │   │   ├── ollama.ts     # Local substrate
-│   │   └── cloud.ts      # OpenRouter substrate
+│   │   ├── cloud.ts      # OpenRouter substrate
+│   │   └── cli-providers.ts  # CLI tool wrappers
 │   └── utils/
 │       ├── gum.ts        # Gum command wrappers
 │       ├── context.ts    # File ingestion
