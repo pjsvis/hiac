@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Bun](https://img.shields.io/badge/Bun-1.3.8+-fa6e05?logo=bun&logoColor=white)](https://bun.sh)
 
-A modern CLI tool that brings AI-assisted development to your terminal. Seamlessly switch between local Ollama and cloud OpenRouter, pipe-friendly automation, and Gum-powered interactive chat sessions.
+A modern CLI tool that brings AI-assisted development to your terminal. Seamlessly switch between local Ollama and cloud OpenRouter, pipe-friendly automation, and Glow-powered markdown rendering with Gum-powered interactive chat sessions.
 
 ## Features
 
@@ -19,7 +19,9 @@ A modern CLI tool that brings AI-assisted development to your terminal. Seamless
 
 ## Platform Support
 
-**hiac requires Gum** for interactive features (chat mode, file selection, prompt setup).
+**hiac requires Gum and Glow** for interactive features:
+- **Gum**: chat mode input, file selection, prompt setup
+- **Glow**: markdown rendering with syntax highlighting and pagination
 
 Gum is available on **macOS, Linux, and Unix-like systems only**.
 
@@ -44,17 +46,20 @@ hiac
 ### Prerequisites
 
 - [Bun](https://bun.sh) >= 1.0.0
-- [Gum](https://github.com/charmbracelet/gum) (required for chat mode and file selection)
+- [Gum](https://github.com/charmbracelet/gum) (required for chat mode input and file selection)
+- [Glow](https://github.com/charmbracelet/glow) (required for markdown rendering in chat mode)
 
 ```bash
 # macOS
 brew install gum
+brew install glow
 
 # Linux
-sudo apt install gum  # or dnf install gum
+sudo apt install gum glow  # or dnf install gum glow
 
 # Windows
 winget install charmbracelet.gum
+winget install charmbracelet.glow
 ```
 
 **Optional CLI Tools** (for `--claude`, `--gemini`, `--kilo` flags):
@@ -150,6 +155,8 @@ hiac "Implement foo()" --hook "bun test"
 
 ### Interactive Chat Mode
 
+Chat mode uses **Glow** for markdown rendering with syntax highlighting and pagination. If Glow is not installed, it automatically falls back to **Gum** format rendering.
+
 ```bash
 # Start chat with default model
 hiac -c
@@ -166,6 +173,11 @@ hiac -c --gemini
 # Chat with dialog saving
 hiac -c --save-dialog
 ```
+
+**Rendering Features:**
+- Glow: Beautiful markdown rendering with syntax highlighting and pagination
+- Fallback: Gum format rendering with ANSI styling
+- Custom theme: Dracula color scheme (see `.hiac/dracula.json`)
 
 ### File Selection
 

@@ -2,6 +2,21 @@
 
 All notable changes to hiac will be documented in this file.
 
+## [0.3.0] - 2026-02-14
+
+### Added
+- Glow markdown rendering for chat mode with syntax highlighting and pagination
+- Automatic fallback to Gum format rendering when Glow is not available
+- Custom Dracula theme for Glow rendering (.hiac/dracula.json)
+- Dual-rendering system: Glow for content output, Gum for interactive input
+- Improved UX with paged markdown for long AI responses
+- Renderer status indicator in chat mode showing active renderer
+
+### Changed
+- Chat mode now uses Glow for markdown rendering (Gum still used for input)
+- Updated installation requirements to include Glow
+- Improved rendering error handling with graceful fallbacks
+
 ## [0.2.0] - 2026-02-13
 
 ### Added
