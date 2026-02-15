@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import { $ } from "bun";
 import { Command } from "commander";
 import { startChat } from "@src/chat.ts";
 import { runOneshot } from "@src/oneshot.ts";
@@ -22,8 +23,8 @@ async function showHelp(): Promise<void> {
       },
       {
         title: "CORE OPTIONS",
-        left: "-m, --model <model>\n-c, --chat\n--select\n--list-models\n--list-roles\n--build-role\n-r, --role <name>\n--init\n--save-dialog",
-        right: "Model (default: kimi-k2.5:cloud)\nInteractive chat mode\nSelect files via Gum\nList Ollama models\nList roles\nBuild custom role\nUse predefined role\nInitialize configuration\nSave chat dialog at end"
+        left: "-m, --model <model>\n-c, --chat\n--select\n--list-models\n--list-roles\n--build-role\n-r, --role <name>\n--init\n--edit-config\n--save-dialog",
+        right: "Model (default: kimi-k2.5:cloud)\nInteractive chat mode\nSelect files via Gum\nList Ollama models\nList roles\nBuild custom role\nUse predefined role\nInitialize configuration\nEdit global config file\nSave chat dialog at end"
       },
       {
         title: "CONTEXT OPTIONS",
@@ -32,8 +33,8 @@ async function showHelp(): Promise<void> {
       },
       {
         title: "EXAMPLES",
-        left: "One-shot mode\nInteractive chat\nPrompt mode (guided)\nUse a role\nWith files\nWith hook",
-        right: "echo \"text\" | hiac\nhiac -c\nhiac --init\nhiac --role coder\nhiac --select\nhiac --hook \"test\""
+        left: "One-shot mode\nInteractive chat\nPrompt mode (guided)\nEdit config\nUse a role\nWith files\nWith hook",
+        right: "echo \"text\" | hiac\nhiac -c\nhiac --init\nhiac --edit-config\nhiac --role coder\nhiac --select\nhiac --hook \"test\""
       }
     ]
   };
@@ -95,6 +96,7 @@ program
   .option("--gemini", "Use Gemini CLI for this session", false)
   .option("-h, --help", "Show help", false)
   .option("--init", "Initialize hiac configuration", false)
+  .option("--edit-config", "Edit global config file in default editor", false)
 .action(async (prompt, options) => {
     if (options.help) {
       await showHelp();
@@ -103,6 +105,11 @@ program
 
     if (options.init) {
       await runInit();
+      return;
+    }
+
+    if (options.editConfig) {
+      await runEditConfig();
       return;
     }
 
@@ -316,6 +323,41 @@ async function runInit(): Promise<void> {
   console.log("\n✅ Initialization complete!");
   console.log("\nEdit ~/.hiac/config.yaml to customize folder locations.");
   console.log("Run 'hiac' to start a chat session.\n");
+}
+
+async function runEditConfig(): Promise<void> {
+  const { getGlobalConfigDir } = await import("@src/utils/config.ts");
+  const pathModule = await import("node:path");
+  const fsModule = await import("node:fs");
+
+  const configDir = await getGlobalConfigDir();
+  const configFile = pathModule.join(configDir, "config.yaml");
+
+  if (!fsModule.existsSync(configFile)) {
+    console.error(`Error: Config file not found: ${configFile}`);
+    console.error("\nRun 'hiac --init' to create the config file first.");
+    process.exit(1);
+  }
+
+  const editorCmd = process.platform === "darwin" ? "open"
+    : process.platform === "linux" ? "xdg-open"
+    : process.platform === "win32" ? "start"
+    : null;
+
+  if (!editorCmd) {
+    console.error(`Error: Unsupported platform: ${process.platform}`);
+    console.error(`\nPlease edit the file manually: ${configFile}`);
+    process.exit(1);
+  }
+
+  try {
+    console.log(`Opening ${configFile}...`);
+    await $`${editorCmd} ${configFile}`;
+  } catch (error) {
+    console.error(`Error opening config file: ${error}`);
+    console.error(`\nPlease edit manually: ${configFile}`);
+    process.exit(1);
+  }
 }
 
 program.parse();
