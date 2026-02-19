@@ -9,6 +9,12 @@ export interface Config {
     playbooks: string;
     "system-prompts": string;
   };
+  defaults?: {
+    model?: string;
+  };
+  openrouter?: {
+    models?: string[];
+  };
 }
 
 const GLOBAL_CONFIG_DIR = path.join(process.env.HOME || "", ".hiac");
@@ -20,6 +26,12 @@ const DEFAULT_CONFIG: Config = {
     debriefs: "./debriefs",
     playbooks: "./playbooks",
     "system-prompts": "./system-prompts",
+  },
+  defaults: {
+    model: "kimi-k2.5:cloud",
+  },
+  openrouter: {
+    models: [],
   },
 };
 
@@ -82,4 +94,34 @@ export async function ensureFolders(config: Config, basePath: string = process.c
 
 export async function getGlobalConfigDir(): Promise<string> {
   return GLOBAL_CONFIG_DIR;
+}
+
+export async function addOpenRouterModel(modelName: string): Promise<void> {
+  if (!modelName.includes("/")) {
+    console.error(`Error: '${modelName}' doesn't look like an OpenRouter model.`);
+    console.error("Expected format: provider/model (e.g., anthropic/claude-sonnet-4)");
+    console.error("Ollama models are detected automatically — no registration needed.");
+    process.exit(1);
+  }
+
+  let config = await loadGlobalConfig();
+  if (!config) {
+    config = { ...DEFAULT_CONFIG };
+  }
+
+  if (!config.openrouter) {
+    config.openrouter = { models: [] };
+  }
+  if (!config.openrouter.models) {
+    config.openrouter.models = [];
+  }
+
+  if (config.openrouter.models.includes(modelName)) {
+    console.log(`Model '${modelName}' is already registered.`);
+    return;
+  }
+
+  config.openrouter.models.push(modelName);
+  await writeGlobalConfig(config);
+  console.log(`Added '${modelName}' to OpenRouter models.`);
 }

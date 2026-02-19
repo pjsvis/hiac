@@ -1,9 +1,24 @@
-import { test, expect, describe } from "bun:test";
+import { test, expect, describe, beforeAll, afterAll } from "bun:test";
 import { getProvider, isCloudModel } from "@src/factory.ts";
 import { OllamaProvider } from "@src/providers/ollama.ts";
 import { CloudProvider } from "@src/providers/cloud.ts";
 
 describe("getProvider", () => {
+  let originalApiKey: string | undefined;
+
+  beforeAll(() => {
+    originalApiKey = process.env.OPENROUTER_API_KEY;
+    process.env.OPENROUTER_API_KEY = "test-key-for-routing-tests";
+  });
+
+  afterAll(() => {
+    if (originalApiKey !== undefined) {
+      process.env.OPENROUTER_API_KEY = originalApiKey;
+    } else {
+      delete process.env.OPENROUTER_API_KEY;
+    }
+  });
+
   test("returns OllamaProvider for simple model names", () => {
     const provider = getProvider("llama3");
     expect(provider).toBeInstanceOf(OllamaProvider);

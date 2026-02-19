@@ -30,7 +30,9 @@ async *stream(
 
 export class ClaudeCLIProvider extends CLIProvider {
   constructor(model: string = "claude-sonnet-4") {
-    super("/Users/petersmith/.bun/bin/claude", model);
+    const path = Bun.which("claude");
+    if (!path) throw new Error("Claude CLI not found in PATH. Install: npm install -g @anthropics/claude-code");
+    super(path, model);
   }
 
   protected buildPrompt(messages: Message[]): string {
@@ -45,7 +47,6 @@ export class ClaudeCLIProvider extends CLIProvider {
     const tempFile = `${tempDir}/prompt.txt`;
     await Bun.write(tempFile, `Please respond with the complete answer. Do not ask follow-up questions.\n\n${prompt}`);
 
-    let output = "";
     const proc = Bun.spawn([this.cliPath, "--print", "-f", tempFile], {
       stdout: "pipe",
       stderr: "inherit",
@@ -59,8 +60,7 @@ export class ClaudeCLIProvider extends CLIProvider {
         const { value, done } = await reader.read();
         if (done) break;
         if (value) {
-          output += decoder.decode(value, { stream: true });
-          yield output;
+          yield decoder.decode(value, { stream: true });
         }
       }
     } finally {
@@ -74,7 +74,9 @@ export class ClaudeCLIProvider extends CLIProvider {
 
 export class GeminiCLIProvider extends CLIProvider {
   constructor(model: string = "gemini-1.5-flash") {
-    super("/Users/petersmith/.bun/bin/gemini", model);
+    const path = Bun.which("gemini");
+    if (!path) throw new Error("Gemini CLI not found in PATH. Install: npm install -g gemini-cli");
+    super(path, model);
   }
 
   protected buildPrompt(messages: Message[]): string {
@@ -83,7 +85,6 @@ export class GeminiCLIProvider extends CLIProvider {
   }
 
   async *streamFromCLI(prompt: string): AsyncIterable<string> {
-    let output = "";
     const proc = Bun.spawn([this.cliPath, "-p", "-m", this.model, prompt], {
       stdout: "pipe",
       stderr: "inherit",
@@ -97,8 +98,7 @@ export class GeminiCLIProvider extends CLIProvider {
         const { value, done } = await reader.read();
         if (done) break;
         if (value) {
-          output += decoder.decode(value, { stream: true });
-          yield output;
+          yield decoder.decode(value, { stream: true });
         }
       }
     } finally {
@@ -111,7 +111,9 @@ export class GeminiCLIProvider extends CLIProvider {
 
 export class KiloCLIProvider extends CLIProvider {
   constructor() {
-    super("/Users/petersmith/.bun/bin/kilo", "auto");
+    const path = Bun.which("kilo");
+    if (!path) throw new Error("Kilo CLI not found in PATH");
+    super(path, "auto");
   }
 
   protected buildPrompt(messages: Message[]): string {
@@ -127,7 +129,7 @@ export class KiloCLIProvider extends CLIProvider {
       stderr: "inherit",
     });
 
-    await proc.text();
+    await proc.exited;
 
     throw new Error("Kilo CLI streaming requires WebSocket implementation. Use interactive kilo instead.");
   }
@@ -138,43 +140,9 @@ export function detectCLIs(): {
   gemini: boolean;
   kilo: boolean;
 } {
-  const claudePath = "/Users/petersmith/.bun/bin/claude";
-  const geminiPath = "/Users/petersmith/.bun/bin/gemini";
-  const kiloPath = "/Users/petersmith/.bun/bin/kilo";
-
-  let claude = false;
-  let gemini = false;
-  let kilo = false;
-
-  try {
-    require.resolve(claudePath);
-    claude = true;
-  } catch {}
-
-  try {
-    require.resolve(geminiPath);
-    gemini = true;
-  } catch {}
-
-  try {
-    require.resolve(kiloPath);
-    kilo = true;
-  } catch {}
-
-  return { claude, gemini, kilo };
-}
-
-export async function getCliPath(_app: string): Promise<string | null> {
-  const paths = [
-    "/Users/petersmith/.bun/bin/claude",
-    "/opt/homebrew/bin/claude",
-  ];
-
-  for (const path of paths) {
-    try {
-      require.resolve(path);
-      return path;
-    } catch {}
-  }
-  return null;
+  return {
+    claude: Bun.which("claude") !== null,
+    gemini: Bun.which("gemini") !== null,
+    kilo: Bun.which("kilo") !== null,
+  };
 }
