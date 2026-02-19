@@ -86,6 +86,10 @@ export async function startChat(options: {
   const provider = options.provider || getProvider(options.model);
   const history: Message[] = [];
 
+  if (options.systemPrompt) {
+    history.push({ role: "system", content: options.systemPrompt });
+  }
+
   const cleanup = async () => {
     if (options.saveDialog && history.length > 0) {
       const dialogModule = await import("@src/utils/dialog.ts");

@@ -14,11 +14,12 @@ export async function runOneshot(options: CLIOptions & { provider?: Provider }):
     stdinContent = await Bun.stdin.text();
   }
 
-  let files: string[] | undefined;
+  let files: string[] | undefined = options.files;
   if (options.select) {
     const { requireGum } = await import("@src/utils/gum.ts");
     await requireGum();
-    files = await selectFiles();
+    const selected = await selectFiles();
+    files = files ? [...files, ...selected] : selected;
   }
 
   const context = await hydrateContext({
@@ -32,9 +33,12 @@ export async function runOneshot(options: CLIOptions & { provider?: Provider }):
   if (options.system) {
     systemParts.push(options.system);
   }
+  
+  // The hydrateContext now returns a combined systemPrompt including playbook, brief and codebase
   if (context.systemPrompt) {
     systemParts.push(context.systemPrompt);
   }
+
   if (systemParts.length > 0) {
     messages.push({
       role: "system",
@@ -49,14 +53,20 @@ export async function runOneshot(options: CLIOptions & { provider?: Provider }):
   }
 
   const userPrompt = options.prompt || "Process the provided input.";
-  messages.push({ role: "user", content: userPrompt });
+  const wrappedPrompt = context.systemPrompt ? `### INSTRUCTION\n${userPrompt}` : userPrompt;
+  messages.push({ role: "user", content: wrappedPrompt });
 
   if (options.hook) {
     const result = await verifyWithRetry(
       provider,
       messages,
       options.model,
-      options.hook
+      options.hook,
+      {
+        files,
+        brief: options.brief,
+        playbook: options.playbook,
+      }
     );
 
     if (!result.passed) {

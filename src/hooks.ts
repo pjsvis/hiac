@@ -56,8 +56,14 @@ export async function verifyWithRetry(
   messages: Message[],
   model: string,
   hookCommand: string,
-  maxRetries = MAX_RETRIES
+  options: {
+    maxRetries?: number;
+    files?: string[];
+    brief?: string;
+    playbook?: string;
+  } = {}
 ): Promise<VerificationResult> {
+  const maxRetries = options.maxRetries ?? MAX_RETRIES;
   let attempts = 0;
   let currentMessages = [...messages];
   let lastError = "";
@@ -65,6 +71,25 @@ export async function verifyWithRetry(
   while (attempts < maxRetries) {
     attempts++;
     process.stdout.write(`\n[Attempt ${attempts}/${maxRetries}] Generating...\n`);
+
+    // Re-ingest context if files are provided, to ensure we have the latest state
+    // (In case something changed on disk)
+    if (options.files && options.files.length > 0) {
+      const { hydrateContext } = await import("@src/utils/context.ts");
+      const context = await hydrateContext({
+        files: options.files,
+        brief: options.brief,
+        playbook: options.playbook,
+      });
+
+      // Update the system message if it exists, otherwise add it
+      const systemMessageIndex = currentMessages.findIndex(m => m.role === "system");
+      if (systemMessageIndex !== -1) {
+        currentMessages[systemMessageIndex].content = context.systemPrompt;
+      } else {
+        currentMessages.unshift({ role: "system", content: context.systemPrompt });
+      }
+    }
 
     let output = "";
     const stream = await provider.stream(currentMessages, model);

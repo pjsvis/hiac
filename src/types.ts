@@ -34,4 +34,5 @@ export interface CLIOptions {
   hook?: string;
   system?: string;
   prompt?: string;
+  files?: string[];
 }
