@@ -123,11 +123,11 @@ export class KiloCLIProvider extends CLIProvider {
     yield "Error: Kilo streaming not yet implemented. Use kilo interactive directly.\n";
     
     const proc = Bun.spawn([this.cliPath, prompt], {
-      stdout: "inherit",
+      stdout: "pipe",
       stderr: "inherit",
     });
 
-    await proc.text();
+    await proc.stdout.text();
 
     throw new Error("Kilo CLI streaming requires WebSocket implementation. Use interactive kilo instead.");
   }

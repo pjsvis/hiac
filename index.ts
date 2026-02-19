@@ -4,7 +4,8 @@ import { Command } from "commander";
 import { startChat } from "@src/chat.ts";
 import { runOneshot } from "@src/oneshot.ts";
 import { checkGumInstalled } from "@src/utils/gum.ts";
-import { getProvider, getCliProvider } from "@src/factory.ts";
+import { getCliProvider } from "@src/factory.ts";
+import { OllamaProvider } from "@src/providers/ollama.ts";
 import { printRoles, getRole, buildRole } from "@src/utils/roles.ts";
 import packageJson from "./package.json" with { type: "json" };
 
