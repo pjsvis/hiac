@@ -41,6 +41,7 @@
   "dependencies": {
     "await-to-js": "^3.0.0",
     "commander": "^13.1.0",
+    "ignore": "^7.0.5",
     "yaml": "^2.8.2"
   },
   "devDependencies": {

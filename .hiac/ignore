@@ -1,0 +1,11 @@
+# .hiacignore defaults
+.git/
+node_modules/
+bun.lockb
+package-lock.json
+dist/
+out/
+.DS_Store
+*.log
+*.exe
+*.bin

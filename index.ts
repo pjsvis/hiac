@@ -22,18 +22,18 @@ async function showHelp(): Promise<void> {
       },
       {
         title: "CORE OPTIONS",
-        left: "-m, --model <model>\n-c, --chat\n--select\n--list-models\n--list-roles\n--build-role\n-r, --role <name>\n--init\n--save-dialog",
-        right: "Model (default: kimi-k2.5:cloud)\nInteractive chat mode\nSelect files via Gum\nList Ollama models\nList roles\nBuild custom role\nUse predefined role\nInitialize configuration\nSave chat dialog at end"
+        left: "-m, --model <model>\n-c, --chat\n-H, --hydrate\n--select\n-f, --files <files...>\n--list-models\n--list-roles\n--build-role\n-r, --role <name>\n--init\n--save-dialog",
+        right: "Model (default: kimi-k2.5:cloud)\nInteractive chat mode\nIngest filtered codebase\nSelect files via Gum\nInclude specific files\nList Ollama models\nList roles\nBuild custom role\nUse predefined role\nInitialize configuration\nSave chat dialog at end"
       },
       {
         title: "CONTEXT OPTIONS",
-        left: "--brief <file>\n--playbook <file>\n--hook <cmd>\n--system <prompt>",
+        left: "-b, --brief <file>\n-y, --playbook <file>\n-k, --hook <cmd>\n--system <prompt>",
         right: "Load project brief\nLoad playbook directives\nVerification hook\nSystem prompt"
       },
       {
         title: "EXAMPLES",
-        left: "One-shot mode\nInteractive chat\nPrompt mode (guided)\nUse a role\nWith files\nWith hook",
-        right: "echo \"text\" | hiac\nhiac -c\nhiac --init\nhiac --role coder\nhiac --select\nhiac --hook \"test\""
+        left: "One-shot mode\nInteractive chat\nPrompt mode (guided)\nUse a role\nWith files\nWith hook\nWith hydrate",
+        right: "echo \"text\" | hiac\nhiac -c\nhiac --init\nhiac --role coder\nhiac --select\nhiac --hook \"test\"\nhiac -H \"Refactor this\""
       }
     ]
   };
@@ -81,15 +81,18 @@ program
   .argument("[prompt...]", "The prompt to send to the AI")
   .option("-m, --model <model>", "Model to use", "kimi-k2.5:cloud")
   .option("-c, --chat", "Start interactive chat mode", false)
+  .option("-H, --hydrate", "Open Gum selector to ingest filtered codebase context", false)
   .option("--select", "Select files via gum filter", false)
   .option("--list-models", "List available Ollama models", false)
   .option("--list-roles", "List available roles", false)
   .option("--build-role", "Interactive role builder", false)
   .option("-r, --role <name>", "Use a predefined role (model + system prompt)")
+  .option("-p, --persona <name>", "Alias for --role")
   .option("--save-dialog", "Save chat dialog at end of session", false)
-  .option("--brief <file>", "Load project brief")
-  .option("--playbook <file>", "Load playbook directives")
-  .option("--hook <command>", "Verification hook for one-shot mode")
+  .option("-b, --brief <file>", "Load project brief")
+  .option("-y, --playbook <file>", "Load playbook directives")
+  .option("-k, --hook <command>", "Verification hook for one-shot mode")
+  .option("-f, --files <files...>", "Include specific files as context")
   .option("--system <prompt>", "System prompt for the AI")
   .option("-h, --help", "Show help", false)
   .option("--init", "Initialize hiac configuration", false)
@@ -99,13 +102,16 @@ program
       return;
     }
 
+    const joinedPrompt = Array.isArray(prompt) ? prompt.join(" ") : prompt;
+
     if (options.init) {
       await runInit();
       return;
     }
 
-    const hasPromptArgs = prompt && prompt.length > 0;
-    const hasOtherFlags = options.chat || options.select || options.listModels || options.listRoles || options.buildRole || options.hook || options.brief || options.playbook || options.saveDialog;
+    const hasPromptArgs = joinedPrompt && joinedPrompt.length > 0;
+    const selectEnabled = options.select || options.hydrate;
+    const hasOtherFlags = options.chat || selectEnabled || options.listModels || options.listRoles || options.buildRole || options.hook || options.brief || options.playbook || options.saveDialog || options.files;
 
     if (!hasPromptArgs && !hasOtherFlags) {
       await runPromptMode(options);
@@ -152,11 +158,12 @@ program
 
     let model = options.model;
     let systemPrompt = options.system;
+    const roleName = options.role || options.persona;
 
-    if (options.role) {
-      const role = await getRole(options.role);
+    if (roleName) {
+      const role = await getRole(roleName);
       if (!role) {
-        console.error(`Error: Role '${options.role}' not found.`);
+        console.error(`Error: Role '${roleName}' not found.`);
         console.error("Run with --list-roles to see available roles.");
         process.exit(1);
       }
@@ -166,10 +173,10 @@ program
       } else {
         systemPrompt = role.system;
       }
-      console.error(`Using role: ${options.role} (${role.model})`);
+      console.error(`Using role: ${roleName} (${role.model})`);
     }
 
-    if (options.chat || options.select) {
+    if (options.chat || selectEnabled) {
       if (!gumInstalled) {
         console.error("Error: Gum is required for chat mode and file selection.");
         console.error("Install it with: brew install gum");
@@ -178,22 +185,94 @@ program
       }
     }
 
+    let playbook = options.playbook;
+    let brief = options.brief;
+
+    if (options.hydrate) {
+      if (!playbook) {
+        const defaultPlaybook = ".hiac/playbook.json";
+        if (await (await import("@src/utils/context.ts")).fileExists(defaultPlaybook)) {
+          playbook = defaultPlaybook;
+        }
+      }
+      if (!brief) {
+        const defaultBrief = ".hiac/brief.md";
+        if (await (await import("@src/utils/context.ts")).fileExists(defaultBrief)) {
+          brief = defaultBrief;
+        }
+      }
+    }
+
     if (options.chat) {
-      await startChat({ model, systemPrompt, saveDialog: options.saveDialog });
+      let finalSystemPrompt = systemPrompt || "";
+      let initialFiles: string[] = options.files || [];
+      
+      if (selectEnabled) {
+        const { selectFiles, hydrateContext } = await import("@src/utils/context.ts");
+        const selected = await selectFiles();
+        initialFiles = [...initialFiles, ...selected];
+        
+        const context = await hydrateContext({
+          brief: brief,
+          playbook: playbook,
+          files: initialFiles,
+        });
+        
+        if (context.systemPrompt) {
+          finalSystemPrompt = finalSystemPrompt 
+            ? `${finalSystemPrompt}\n\n${context.systemPrompt}` 
+            : context.systemPrompt;
+        }
+      } else if (brief || playbook || initialFiles.length > 0) {
+        const { hydrateContext } = await import("@src/utils/context.ts");
+        const context = await hydrateContext({
+          brief: brief,
+          playbook: playbook,
+          files: initialFiles,
+        });
+        
+        if (context.systemPrompt) {
+          finalSystemPrompt = finalSystemPrompt 
+            ? `${finalSystemPrompt}\n\n${context.systemPrompt}` 
+            : context.systemPrompt;
+        }
+      }
+
+      await startChat({ 
+        model, 
+        systemPrompt: finalSystemPrompt, 
+        saveDialog: options.saveDialog 
+      });
       return;
+    }
+
+    let hook = options.hook;
+    if (hook) {
+      const hooksFile = ".hiac/hooks.json";
+      if (await (await import("@src/utils/context.ts")).fileExists(hooksFile)) {
+        try {
+          const hooks = await Bun.file(hooksFile).json();
+          if (hooks[hook]) {
+            hook = hooks[hook];
+          }
+        } catch {
+          // Ignore JSON parse errors
+        }
+      }
     }
 
     await runOneshot({
       model,
       chat: options.chat,
-      select: options.select,
+      select: selectEnabled,
       listModels: options.listModels,
       listRoles: options.listRoles,
-      brief: options.brief,
-      playbook: options.playbook,
-      hook: options.hook,
+      brief: brief,
+      playbook: playbook,
+      hook: hook,
       system: systemPrompt,
-      prompt,
+      prompt: joinedPrompt,
+      files: options.files,
     });
   });
 
