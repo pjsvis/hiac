@@ -5,6 +5,7 @@ import { startChat } from "@src/chat.ts";
 import { runOneshot } from "@src/oneshot.ts";
 import { checkGumInstalled } from "@src/utils/gum.ts";
 import { getCliProvider } from "@src/factory.ts";
+import { OllamaProvider } from "@src/providers/ollama.ts";
 import { printRoles, getRole, buildRole } from "@src/utils/roles.ts";
 import { loadConfig, addOpenRouterModel } from "@src/utils/config.ts";
 import { resolveModel, listModels } from "@src/utils/models.ts";
