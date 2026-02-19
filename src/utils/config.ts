@@ -125,21 +125,3 @@ export async function addOpenRouterModel(modelName: string): Promise<void> {
   await writeGlobalConfig(config);
   console.log(`Added '${modelName}' to OpenRouter models.`);
 }
-
-export async function removeOpenRouterModel(modelName: string): Promise<void> {
-  let config = await loadGlobalConfig();
-  if (!config?.openrouter?.models) {
-    console.log(`Model '${modelName}' not found in config.`);
-    return;
-  }
-
-  const idx = config.openrouter.models.indexOf(modelName);
-  if (idx === -1) {
-    console.log(`Model '${modelName}' not found in config.`);
-    return;
-  }
-
-  config.openrouter.models.splice(idx, 1);
-  await writeGlobalConfig(config);
-  console.log(`Removed '${modelName}' from OpenRouter models.`);
-}

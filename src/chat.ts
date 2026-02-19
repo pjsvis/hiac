@@ -3,7 +3,6 @@ import { getProvider } from "@src/factory.ts";
 import { gumWrite, requireGum, gumFormat } from "@src/utils/gum.ts";
 import { glowRender, checkGlowInstalled } from "@src/utils/glow.ts";
 import to from "await-to-js";
-import { $ } from "bun";
 
 /**
  * Copy text to clipboard
