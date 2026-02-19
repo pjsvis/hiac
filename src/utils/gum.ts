@@ -1,5 +1,7 @@
 import { $ } from "bun";
 
+const DEFAULT_WRAP_WIDTH = 70;
+
 const GUM_NOT_FOUND_ERROR = `Gum is not installed. Install it with:
   macOS:   brew install gum
   Linux:   sudo apt install gum  OR  sudo dnf install gum
@@ -87,7 +89,7 @@ export async function gumFormat(markdown: string): Promise<string> {
   let output = await proc.stdout.text();
   await proc.exited;
 
-  output = wrapAnsiText(output, 70);
+  output = wrapAnsiText(output, DEFAULT_WRAP_WIDTH);
 
   return '\n' + output + '\n';
 }

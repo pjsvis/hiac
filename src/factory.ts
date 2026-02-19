@@ -1,17 +1,37 @@
 import type { Provider } from "@src/types.ts";
 import { OllamaProvider } from "@src/providers/ollama.ts";
 import { CloudProvider } from "@src/providers/cloud.ts";
+import {
+  ClaudeCLIProvider,
+  GeminiCLIProvider,
+  KiloCLIProvider,
+  detectCLIs,
+} from "@src/providers/cli-providers.ts";
 
-/**
- * Factory function to get the appropriate provider based on model name.
- *
- * Routing logic:
- * - Models containing "/" (e.g., "anthropic/claude-3-opus") -> CloudProvider
- * - Models starting with "gpt-" (e.g., "gpt-4") -> CloudProvider
- * - All other models -> OllamaProvider (local)
- */
+export function getCliProvider(
+  claude?: boolean,
+  gemini?: boolean,
+  kilo?: boolean
+): Provider | null {
+  const detected = detectCLIs();
+
+  if (claude && detected.claude) {
+    return new ClaudeCLIProvider();
+  }
+
+  if (gemini && detected.gemini) {
+    return new GeminiCLIProvider();
+  }
+
+  if (kilo && detected.kilo) {
+    return new KiloCLIProvider();
+  }
+
+  return null;
+}
+
 export function getProvider(model: string): Provider {
-  const isCloudModel = model.includes("/") || model.startsWith("gpt-");
+  const isCloudModel = model.includes("/") || model.startsWith("gpt");
 
   if (isCloudModel) {
     return new CloudProvider();
@@ -20,9 +40,6 @@ export function getProvider(model: string): Provider {
   return new OllamaProvider();
 }
 
-/**
- * Check if a model requires cloud provider
- */
 export function isCloudModel(model: string): boolean {
-  return model.includes("/") || model.startsWith("gpt-");
+  return model.includes("/") || model.startsWith("gpt");
 }

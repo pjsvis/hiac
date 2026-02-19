@@ -1,12 +1,12 @@
-import type { Message, CLIOptions } from "@src/types.ts";
+import type { Message, CLIOptions, Provider } from "@src/types.ts";
 import { getProvider } from "@src/factory.ts";
-import { hydrateContext } from "@src/utils/context.ts";
+import { hydrateContext } from "./utils/context.ts";
 import { extractAndSaveDiagrams } from "@src/utils/diagram.ts";
 import { verifyWithRetry } from "@src/hooks.ts";
 import { selectFiles } from "@src/utils/context.ts";
 
-export async function runOneshot(options: CLIOptions): Promise<void> {
-  const provider = getProvider(options.model);
+export async function runOneshot(options: CLIOptions & { provider?: Provider }): Promise<void> {
+  const provider = options.provider || getProvider(options.model);
   const messages: Message[] = [];
 
   let stdinContent: string | undefined;

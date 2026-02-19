@@ -6,11 +6,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Bun](https://img.shields.io/badge/Bun-1.3.8+-fa6e05?logo=bun&logoColor=white)](https://bun.sh)
 
-A modern CLI tool that brings AI-assisted development to your terminal. Seamlessly switch between local Ollama and cloud OpenRouter, pipe-friendly automation, and Gum-powered interactive chat sessions.
+A modern CLI tool that brings AI-assisted development to your terminal. Seamlessly switch between local Ollama and cloud OpenRouter, pipe-friendly automation, and Glow-powered markdown rendering with Gum-powered interactive chat sessions.
 
 ## Features
 
-- **Multi-Provider Support**: Seamlessly switch between local Ollama and cloud OpenRouter
+- **Multi-Provider Support**: Local Ollama, cloud OpenRouter, and CLI tools (Claude, Gemini, Kilo)
 - **One-Shot Mode**: Pipe-friendly execution for automation
 - **Interactive Chat Mode**: Gum-powered REPL for conversational AI
 - **Verification Hooks**: Auto-retry with error feedback until tests pass
@@ -19,7 +19,9 @@ A modern CLI tool that brings AI-assisted development to your terminal. Seamless
 
 ## Platform Support
 
-**hiac requires Gum** for interactive features (chat mode, file selection, prompt setup).
+**hiac requires Gum and Glow** for interactive features:
+- **Gum**: chat mode input, file selection, prompt setup
+- **Glow**: markdown rendering with syntax highlighting and pagination
 
 Gum is available on **macOS, Linux, and Unix-like systems only**.
 
@@ -44,18 +46,26 @@ hiac
 ### Prerequisites
 
 - [Bun](https://bun.sh) >= 1.0.0
-- [Gum](https://github.com/charmbracelet/gum) (required for chat mode and file selection)
+- [Gum](https://github.com/charmbracelet/gum) (required for chat mode input and file selection)
+- [Glow](https://github.com/charmbracelet/glow) (required for markdown rendering in chat mode)
 
 ```bash
 # macOS
 brew install gum
+brew install glow
 
 # Linux
-sudo apt install gum  # or dnf install gum
+sudo apt install gum glow  # or dnf install gum glow
 
 # Windows
 winget install charmbracelet.gum
+winget install charmbracelet.glow
 ```
+
+**Optional CLI Tools** (for `--claude`, `--gemini`, `--kilo` flags):
+- [Claude CLI](https://github.com/anthropics/claude-code): `brew install claude` or `npm install -g @anthropics/claude-code`
+- [Gemini CLI](https://github.com/google-gemini/gemini-cli): `npm install -g gemini-cli`
+- [Kilo CLI](https://github.com/marcus/proxy): `brew install marcus/tap/td`
 
 ### Install hiac
 
@@ -130,6 +140,12 @@ hiac -m llama3 "Summarize this file"
 # Cloud model (OpenRouter)
 hiac -m anthropic/claude-3-haiku "Write a test"
 
+# With Claude CLI
+hiac --claude "Summarize this code"
+
+# With Gemini CLI
+hiac --gemini -m gemini-2.0-flash "Review this file"
+
 # Pipe input
 cat error.log | hiac "What went wrong?"
 
@@ -139,16 +155,29 @@ hiac "Implement foo()" --hook "bun test"
 
 ### Interactive Chat Mode
 
+Chat mode uses **Glow** for markdown rendering with syntax highlighting and pagination. If Glow is not installed, it automatically falls back to **Gum** format rendering.
+
 ```bash
-# Start chat with default model (llama3)
+# Start chat with default model
 hiac -c
 
 # Chat with cloud model
 hiac -c -m openai/gpt-4o-mini
 
+# Chat with Claude CLI
+hiac -c --claude
+
+# Chat with Gemini CLI
+hiac -c --gemini
+
 # Chat with dialog saving
 hiac -c --save-dialog
 ```
+
+**Rendering Features:**
+- Glow: Beautiful markdown rendering with syntax highlighting and pagination
+- Fallback: Gum format rendering with ANSI styling
+- Custom theme: Dracula color scheme (see `.hiac/dracula.json`)
 
 ### File Selection
 
@@ -165,9 +194,18 @@ hiac "Review the architecture" --brief ./briefs/architecture.md --playbook ./pla
 | Variable | Description |
 |----------|-------------|
 | `OPENROUTER_API_KEY` | Required for cloud models (OpenRouter) |
+| `ANTHROPIC_API_KEY` | Required for Claude CLI |
+| `GOOGLE_API_KEY` | Required for Gemini CLI |
 
 ```bash
+# Cloud models
 export OPENROUTER_API_KEY=your-key-here
+
+# Claude CLI
+export ANTHROPIC_API_KEY=sk-ant-...
+
+# Gemini CLI
+export GOOGLE_API_KEY=your-key-here
 ```
 
 ## Model Routing
@@ -178,6 +216,16 @@ export OPENROUTER_API_KEY=your-key-here
 | `gpt-4`, `gpt-4o-mini` | OpenRouter (cloud) |
 | `anthropic/claude-*` | OpenRouter (cloud) |
 | `openai/*` | OpenRouter (cloud) |
+
+### CLI Tool Flags
+
+| Flag | Purpose | Requires |
+|------|---------|----------|
+| `--claude` | Use Claude CLI | Claude CLI installed |
+| `--gemini` | Use Gemini CLI | Gemini CLI installed |
+| `--kilo` | Use Kilo CLI | Kilo CLI installed |
+
+CLI tools provide context-aware AI for documents but lack native tool capabilities. Use these flags when you want to pass briefs, playbooks, and files to external CLI tools.
 
 ## Verification Hooks
 
@@ -206,7 +254,8 @@ hiac/
 │   ├── hooks.ts          # Verification logic
 │   ├── providers/
 │   │   ├── ollama.ts     # Local substrate
-│   │   └── cloud.ts      # OpenRouter substrate
+│   │   ├── cloud.ts      # OpenRouter substrate
+│   │   └── cli-providers.ts  # CLI tool wrappers
 │   └── utils/
 │       ├── gum.ts        # Gum command wrappers
 │       ├── context.ts    # File ingestion
