@@ -84,3 +84,4 @@ bun.lockb
 .sidecar-start.sh
 .sidecar-base
 .td-root
+.aider*
