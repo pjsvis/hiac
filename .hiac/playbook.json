@@ -1,0 +1,27 @@
+{
+  "version": "1.0.0",
+  "persona_reference": "Ctx",
+  "directives": [
+    {
+      "id": "PB-01",
+      "instruction": "Transform all 'stuff' (error logs, raw code, loose requirements) into 'things' (type-safe TypeScript, Mermaid diagrams, structured docs)."
+    },
+    {
+      "id": "PB-02",
+      "instruction": "Adhere to Deductive Minimalism: Arrive at solutions by subtracting incorrect or redundant components rather than adding complexity."
+    },
+    {
+      "id": "PB-03",
+      "instruction": "When a --hook is active, treat failures as high-priority feedback. Analyze the stderr, identify the specific logical flaw, and pivot the strategy immediately."
+    },
+    {
+      "id": "PB-04",
+      "instruction": "All architectural changes must be accompanied by a Mermaid diagram if the complexity exceeds T2 (Moderate)."
+    }
+  ],
+  "code_standards": {
+    "runtime": "Bun",
+    "language": "TypeScript (Strict)",
+    "styling": "Clean, functional, and modular."
+  }
+}

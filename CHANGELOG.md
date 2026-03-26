@@ -2,6 +2,27 @@
 
 All notable changes to hiac will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- Unified model registry: merged Ollama (auto-detected) + OpenRouter (config-managed) model list
+- `--add-model <provider/model>` flag to register OpenRouter models in config
+- `-m ?` flag to force interactive model picker via Gum
+- Model resolution chain: explicit -m → role → config default → Gum picker (TTY) → error
+- Config schema: `defaults.model` and `openrouter.models` sections in config.yaml
+- New module `src/utils/models.ts` for unified model operations
+
+### Changed
+- Default model now sourced from `defaults.model` in config instead of hardcoded CLI flag
+- `--list-models` now shows both Ollama and registered OpenRouter models
+- Role builder (`--build-role`) uses unified model picker instead of Ollama-only
+- `hiac --init` creates config with `defaults` and `openrouter` sections
+
+### Fixed
+- Unused `$` import in chat.ts (TS6133)
+- `proc.text()` call on non-piped subprocess in cli-providers.ts (TS2339)
+- Factory routing tests failing without OPENROUTER_API_KEY env var
+
 ## [0.3.0] - 2026-02-14
 
 ### Added

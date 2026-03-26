@@ -3,7 +3,6 @@ import { getProvider } from "@src/factory.ts";
 import { gumWrite, requireGum, gumFormat } from "@src/utils/gum.ts";
 import { glowRender, checkGlowInstalled } from "@src/utils/glow.ts";
 import to from "await-to-js";
-import { $ } from "bun";
 
 /**
  * Copy text to clipboard
@@ -86,6 +85,10 @@ export async function startChat(options: {
 
   const provider = options.provider || getProvider(options.model);
   const history: Message[] = [];
+
+  if (options.systemPrompt) {
+    history.push({ role: "system", content: options.systemPrompt });
+  }
 
   const cleanup = async () => {
     if (options.saveDialog && history.length > 0) {

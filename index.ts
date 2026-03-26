@@ -4,8 +4,10 @@ import { Command } from "commander";
 import { startChat } from "@src/chat.ts";
 import { runOneshot } from "@src/oneshot.ts";
 import { checkGumInstalled } from "@src/utils/gum.ts";
-import { getProvider, getCliProvider } from "@src/factory.ts";
+import { getCliProvider } from "@src/factory.ts";
 import { printRoles, getRole, buildRole } from "@src/utils/roles.ts";
+import { loadConfig, addOpenRouterModel } from "@src/utils/config.ts";
+import { resolveModel, listModels } from "@src/utils/models.ts";
 import packageJson from "./package.json" with { type: "json" };
 
 async function showHelp(): Promise<void> {
@@ -23,12 +25,12 @@ async function showHelp(): Promise<void> {
       },
       {
         title: "CORE OPTIONS",
-        left: "-m, --model <model>\n-c, --chat\n--select\n--list-models\n--list-roles\n--build-role\n-r, --role <name>\n--init\n--edit-config\n--save-dialog",
-        right: "Model (default: kimi-k2.5:cloud)\nInteractive chat mode\nSelect files via Gum\nList Ollama models\nList roles\nBuild custom role\nUse predefined role\nInitialize configuration\nEdit global config file\nSave chat dialog at end"
+        left: "-m, --model <model>\n-c, --chat\n--select\n--list-models\n--list-roles\n--build-role\n-r, --role <name>\n--add-model <name>\n--init\n--edit-config\n--save-dialog",
+        right: "Model (use ? to pick)\nInteractive chat mode\nSelect files via Gum\nList all models\nList roles\nBuild custom role\nUse predefined role\nAdd OpenRouter model\nInitialize configuration\nEdit global config file\nSave chat dialog at end"
       },
       {
         title: "CONTEXT OPTIONS",
-        left: "--brief <file>\n--playbook <file>\n--hook <cmd>\n--system <prompt>",
+        left: "-b, --brief <file>\n-y, --playbook <file>\n-k, --hook <cmd>\n--system <prompt>",
         right: "Load project brief\nLoad playbook directives\nVerification hook\nSystem prompt"
       },
       {
@@ -80,28 +82,35 @@ program
   .description("Harness for Intelligence and Automated Context")
   .version(packageJson.version)
   .argument("[prompt...]", "The prompt to send to the AI")
-  .option("-m, --model <model>", "Model to use", "kimi-k2.5:cloud")
+  .option("-m, --model <model>", "Model to use (? to pick interactively)")
   .option("-c, --chat", "Start interactive chat mode", false)
+  .option("-H, --hydrate", "Open Gum selector to ingest filtered codebase context", false)
   .option("--select", "Select files via gum filter", false)
-  .option("--list-models", "List available Ollama models", false)
+  .option("--list-models", "List available models", false)
   .option("--list-roles", "List available roles", false)
   .option("--build-role", "Interactive role builder", false)
   .option("-r, --role <name>", "Use a predefined role (model + system prompt)")
+  .option("-p, --persona <name>", "Alias for --role")
   .option("--save-dialog", "Save chat dialog at end of session", false)
-  .option("--brief <file>", "Load project brief")
-  .option("--playbook <file>", "Load playbook directives")
-  .option("--hook <command>", "Verification hook for one-shot mode")
+  .option("-b, --brief <file>", "Load project brief")
+  .option("-y, --playbook <file>", "Load playbook directives")
+  .option("-k, --hook <command>", "Verification hook for one-shot mode")
+  .option("-f, --files <files...>", "Include specific files as context")
   .option("--system <prompt>", "System prompt for the AI")
   .option("--claude", "Use Claude CLI for this session", false)
   .option("--gemini", "Use Gemini CLI for this session", false)
+  .option("--kilo", "Use Kilo CLI for this session", false)
   .option("-h, --help", "Show help", false)
   .option("--init", "Initialize hiac configuration", false)
+  .option("--add-model <name>", "Add an OpenRouter model to your config")
   .option("--edit-config", "Edit global config file in default editor", false)
 .action(async (prompt, options) => {
     if (options.help) {
       await showHelp();
       return;
     }
+
+    const joinedPrompt = Array.isArray(prompt) ? prompt.join(" ") : prompt;
 
     if (options.init) {
       await runInit();
@@ -112,6 +121,13 @@ program
       await runEditConfig();
       return;
     }
+
+    if (options.addModel) {
+      await addOpenRouterModel(options.addModel);
+      return;
+    }
+
+    const config = await loadConfig();
 
     const hasPromptArgs = prompt && prompt.length > 0;
     const hasOtherFlags = options.chat || options.select || options.listModels || options.listRoles || options.buildRole || options.hook || options.brief || options.playbook || options.saveDialog;
@@ -124,23 +140,7 @@ program
     const gumInstalled = await checkGumInstalled();
 
     if (options.listModels) {
-      const ollama = new OllamaProvider();
-      const available = await ollama.isAvailable();
-      if (!available) {
-        console.error("Error: Ollama is not running.");
-        console.error("Start it with: ollama serve");
-        process.exit(1);
-      }
-      const models = await ollama.listModels();
-      if (models.length === 0) {
-        console.log("No models found. Pull one with: ollama pull <model>");
-        return;
-      }
-      console.log("Available Ollama models:");
-      for (const m of models) {
-        const sizeMB = (m.size / 1024 / 1024).toFixed(0);
-        console.log(`  ${m.name} (${sizeMB} MB)`);
-      }
+      await listModels(config);
       return;
     }
 
@@ -159,20 +159,20 @@ program
       return;
     }
 
-    let model = options.model;
+    let model: string | undefined = options.model;
     let systemPrompt = options.system;
     const cliProvider = getCliProvider(options.claude, options.gemini, options.kilo);
 
     if (cliProvider) {
       const providerName = cliProvider.constructor.name.replace("Provider", "");
-      model = model || "auto";
+      model = model && model !== "?" ? model : "auto";
       console.log(`Using ${providerName} CLI as provider`);
     }
 
-    if (options.role) {
-      const role = await getRole(options.role);
+    if (roleName) {
+      const role = await getRole(roleName);
       if (!role) {
-        console.error(`Error: Role '${options.role}' not found.`);
+        console.error(`Error: Role '${roleName}' not found.`);
         console.error("Run with --list-roles to see available roles.");
         process.exit(1);
       }
@@ -182,8 +182,12 @@ program
       } else {
         systemPrompt = role.system;
       }
-      console.error(`Using role: ${options.role} (${role.model})`);
+      console.error(`Using role: ${roleName} (${role.model})`);
     }
+
+    const resolvedModel: string = cliProvider
+      ? (model || "auto")
+      : await resolveModel(model, config);
 
     if (options.chat || options.select) {
       if (!gumInstalled) {
@@ -194,32 +198,111 @@ program
       }
     }
 
+    let playbook = options.playbook;
+    let brief = options.brief;
+
+    if (options.hydrate) {
+      if (!playbook) {
+        const defaultPlaybook = ".hiac/playbook.json";
+        if (await (await import("@src/utils/context.ts")).fileExists(defaultPlaybook)) {
+          playbook = defaultPlaybook;
+        }
+      }
+      if (!brief) {
+        const defaultBrief = ".hiac/brief.md";
+        if (await (await import("@src/utils/context.ts")).fileExists(defaultBrief)) {
+          brief = defaultBrief;
+        }
+      }
+    }
+
     if (options.chat) {
-      await startChat({ model, systemPrompt, saveDialog: options.saveDialog, provider: cliProvider || undefined });
+
+      let finalSystemPrompt = systemPrompt || "";
+      let initialFiles: string[] = options.files || [];
+      
+      if (selectEnabled) {
+        const { selectFiles, hydrateContext } = await import("@src/utils/context.ts");
+        const selected = await selectFiles();
+        initialFiles = [...initialFiles, ...selected];
+        
+        const context = await hydrateContext({
+          brief: brief,
+          playbook: playbook,
+          files: initialFiles,
+        });
+        
+        if (context.systemPrompt) {
+          finalSystemPrompt = finalSystemPrompt 
+            ? `${finalSystemPrompt}\n\n${context.systemPrompt}` 
+            : context.systemPrompt;
+        }
+      } else if (brief || playbook || initialFiles.length > 0) {
+        const { hydrateContext } = await import("@src/utils/context.ts");
+        const context = await hydrateContext({
+          brief: brief,
+          playbook: playbook,
+          files: initialFiles,
+        });
+        
+        if (context.systemPrompt) {
+          finalSystemPrompt = finalSystemPrompt 
+            ? `${finalSystemPrompt}\n\n${context.systemPrompt}` 
+            : context.systemPrompt;
+        }
+      }
+
+      await startChat({ 
+        model, 
+        systemPrompt: finalSystemPrompt, 
+        saveDialog: options.saveDialog 
+      });
+
+      await startChat({ model: resolvedModel, systemPrompt, saveDialog: options.saveDialog, provider: cliProvider || undefined });
       return;
     }
 
+    let hook = options.hook;
+    if (hook) {
+      const hooksFile = ".hiac/hooks.json";
+      if (await (await import("@src/utils/context.ts")).fileExists(hooksFile)) {
+        try {
+          const hooks = await Bun.file(hooksFile).json();
+          if (hooks[hook]) {
+            hook = hooks[hook];
+          }
+        } catch {
+          // Ignore JSON parse errors
+        }
+      }
+    }
+
     await runOneshot({
-      model,
+      model: resolvedModel,
       chat: options.chat,
-      select: options.select,
+      select: selectEnabled,
       listModels: options.listModels,
       listRoles: options.listRoles,
-      brief: options.brief,
-      playbook: options.playbook,
-      hook: options.hook,
+      brief: brief,
+      playbook: playbook,
+      hook: hook,
       system: systemPrompt,
+
       prompt,
       provider: cliProvider || undefined,
+
     });
   });
 
 async function runPromptMode(options: any): Promise<void> {
   const { gumFilter, requireGum } = await import("@src/utils/gum.ts");
   const { loadConfig } = await import("@src/utils/config.ts");
+  const { resolveModel: resolveModelFn } = await import("@src/utils/models.ts");
   const rolesModule = await import("@src/utils/roles.ts");
 
   await requireGum();
+
+  const config = await loadConfig();
 
   console.log("\n🔧 Let's set up your chat session\n");
 
@@ -234,20 +317,20 @@ async function runPromptMode(options: any): Promise<void> {
 
   const selectedRole = await gumFilter(roleNames, { header: "Select Role", height: 15 });
 
-  let model = options.model;
+  let modelInput: string | undefined = options.model;
   let systemPrompt = "";
 
   if (selectedRole.length > 0 && !selectedRole[0].includes("(Skip")) {
     const roleName = selectedRole[0].split(" - ")[0];
     const role = availableRoles[roleName];
     if (role) {
-      model = role.model;
+      modelInput = role.model;
       systemPrompt = role.system;
       console.log(`Using role: ${roleName} (${role.model})`);
     }
   }
 
-  const config = await loadConfig();
+  const model = await resolveModelFn(modelInput, config);
 
   console.log("\nSelect brief files (Ctrl+D to finish):");
   const briefFiles = await selectFilesFromFolder(config.folders.briefs, "Brief files");
@@ -306,6 +389,12 @@ async function runInit(): Promise<void> {
       debriefs: "./debriefs",
       playbooks: "./playbooks",
       "system-prompts": "./system-prompts",
+    },
+    defaults: {
+      model: "kimi-k2.5:cloud",
+    },
+    openrouter: {
+      models: [] as string[],
     },
   };
 

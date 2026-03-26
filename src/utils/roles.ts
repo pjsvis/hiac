@@ -2,8 +2,9 @@ import { readFile, access, writeFile, readdir } from "fs/promises";
 import { constants } from "fs";
 import { parse, stringify } from "yaml";
 import type { Role } from "@src/types.ts";
-import { OllamaProvider } from "@src/providers/ollama.ts";
 import { gumFilter } from "./gum.ts";
+import { selectModel } from "./models.ts";
+import { loadConfig } from "./config.ts";
 import { join } from "path";
 
 const DEFAULT_ROLES_PATH = ".hiac/roles.yaml";
@@ -128,28 +129,14 @@ export async function saveRole(
 export async function buildRole(): Promise<void> {
   console.log("\n🔨 Role Builder\n");
 
-  const ollama = new OllamaProvider();
-  const available = await ollama.isAvailable();
-
+  const config = await loadConfig();
   let selectedModel: string;
 
-  if (available) {
-    const models = await ollama.listModels();
-    if (models.length === 0) {
-      console.log("No models found. Using default.");
-      selectedModel = "kimi-k2.5:cloud";
-    } else {
-      const modelNames = models.map((m) => m.name);
-      console.log(`\nSelect a model (${modelNames.length} available):\n`);
-      const result = await gumFilter(modelNames, {
-        header: "Select model:",
-        height: 15,
-      });
-      selectedModel = result[0] || "kimi-k2.5:cloud";
-    }
-  } else {
-    console.log("Ollama not available. Using cloud model.");
-    selectedModel = "kimi-k2.5:cloud";
+  try {
+    selectedModel = await selectModel(config);
+  } catch {
+    selectedModel = config.defaults?.model || "kimi-k2.5:cloud";
+    console.log(`No models available for selection. Using default: ${selectedModel}`);
   }
 
   console.log(`Selected model: ${selectedModel}\n`);
