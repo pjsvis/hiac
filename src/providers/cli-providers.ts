@@ -1,5 +1,6 @@
 import type { Message, Provider, StreamOptions } from "@src/types.ts";
 import { $ } from "bun";
+import { existsSync } from "node:fs";
 
 export interface CLIProviderOptions {
   path: string;
@@ -15,7 +16,7 @@ export abstract class CLIProvider implements Provider {
     this.model = model || "";
   }
 
-async *stream(
+  async *stream(
     messages: Message[],
     _model: string,
     _options?: StreamOptions
@@ -30,9 +31,8 @@ async *stream(
 
 export class ClaudeCLIProvider extends CLIProvider {
   constructor(model: string = "claude-sonnet-4") {
-    const path = Bun.which("claude");
-    if (!path) throw new Error("Claude CLI not found in PATH. Install: npm install -g @anthropics/claude-code");
-    super(path, model);
+    const cliPath = findCLI("claude");
+    super(cliPath, model);
   }
 
   protected buildPrompt(messages: Message[]): string {
@@ -60,6 +60,7 @@ export class ClaudeCLIProvider extends CLIProvider {
         const { value, done } = await reader.read();
         if (done) break;
         if (value) {
+          // Yield only the new chunk, not accumulated output
           yield decoder.decode(value, { stream: true });
         }
       }
@@ -74,9 +75,8 @@ export class ClaudeCLIProvider extends CLIProvider {
 
 export class GeminiCLIProvider extends CLIProvider {
   constructor(model: string = "gemini-1.5-flash") {
-    const path = Bun.which("gemini");
-    if (!path) throw new Error("Gemini CLI not found in PATH. Install: npm install -g gemini-cli");
-    super(path, model);
+    const cliPath = findCLI("gemini");
+    super(cliPath, model);
   }
 
   protected buildPrompt(messages: Message[]): string {
@@ -98,6 +98,7 @@ export class GeminiCLIProvider extends CLIProvider {
         const { value, done } = await reader.read();
         if (done) break;
         if (value) {
+          // Yield only the new chunk, not accumulated output
           yield decoder.decode(value, { stream: true });
         }
       }
@@ -111,9 +112,8 @@ export class GeminiCLIProvider extends CLIProvider {
 
 export class KiloCLIProvider extends CLIProvider {
   constructor() {
-    const path = Bun.which("kilo");
-    if (!path) throw new Error("Kilo CLI not found in PATH");
-    super(path, "auto");
+    const cliPath = findCLI("kilo");
+    super(cliPath, "auto");
   }
 
   protected buildPrompt(messages: Message[]): string {
@@ -125,14 +125,40 @@ export class KiloCLIProvider extends CLIProvider {
     yield "Error: Kilo streaming not yet implemented. Use kilo interactive directly.\n";
     
     const proc = Bun.spawn([this.cliPath, prompt], {
-      stdout: "pipe",
+      stdout: "inherit",
       stderr: "inherit",
     });
 
-    await proc.exited;
+    await proc.text();
 
     throw new Error("Kilo CLI streaming requires WebSocket implementation. Use interactive kilo instead.");
   }
+}
+
+/**
+ * Find CLI in PATH using Bun.which(), with fallback locations
+ * Synchronous - uses PATH resolution then checks common locations
+ */
+function findCLI(name: string): string {
+  // Try Bun.which first (cross-platform PATH resolution)
+  const found = Bun.which(name);
+  if (found) return found;
+
+  // Fallback to common macOS Homebrew/Linux locations
+  const homebrewPaths = [
+    `/opt/homebrew/bin/${name}`,
+    `/usr/local/bin/${name}`,
+    `${process.env.HOME}/.bun/bin/${name}`,
+  ];
+
+  for (const path of homebrewPaths) {
+    if (existsSync(path)) {
+      return path;
+    }
+  }
+
+  // Return the name itself as last resort (will fail at runtime if not in PATH)
+  return name;
 }
 
 export function detectCLIs(): {
