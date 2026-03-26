@@ -108,3 +108,62 @@ For new features:
 ## License
 
 By contributing, you agree that your contributions will be licensed under the MIT License.
+
+---
+
+## Agent Lifecycle & Cleanup
+
+When using AI coding agents (sidecar/pi), follow this checklist before marking work complete.
+
+### During Implementation (Session Hygiene)
+
+- [ ] **Use td** to track task state (`td start`, `td review`, `td close`)
+- [ ] **Stay in session** - use same sidecar context to avoid drift
+- [ ] **Commit often** - push changes; don't let work pile up uncommitted
+
+### After PR Merge (Mandatory Cleanup)
+
+- [ ] **Delete source branch** (GitHub UI or `git push origin --delete branch-name`)
+- [ ] **Close td tasks** - mark implemented tasks as reviewed/closed
+- [ ] **Check for orphaned worktrees**
+
+```bash
+git worktree list
+# Remove any stale worktrees:
+git worktree remove /path/to/worktree
+```
+
+- [ ] **Check for orphaned branches**
+
+```bash
+# Local stale branches (merged into main):
+git branch --merged main | grep -v main | xargs git branch -d
+
+# Remote stale branches:
+git fetch --prune
+```
+
+### Periodic Hygiene (Weekly/Sprint)
+
+```bash
+# Check for backup files accidentally committed
+find . -name "*.bak" -o -name "*.orig" -o -name "*.swp"
+
+# Check for untracked debris
+git status --short
+
+# Review open PRs - close or merge stale ones
+gh pr list --state open
+
+# Review td tasks - close stale review items
+td list
+```
+
+### Why This Matters
+
+Without cleanup:
+- Worktrees accumulate → git becomes confused about "where am I?"
+- Branches accumulate → PR list becomes unreadable
+- Tasks accumulate → "what's actually left to do?" becomes unanswerable
+
+Treat agents like contractors: they create work, but someone must close the loop.
