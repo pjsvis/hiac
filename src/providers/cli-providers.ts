@@ -1,5 +1,6 @@
 import type { Message, Provider, StreamOptions } from "@src/types.ts";
 import { $ } from "bun";
+import { existsSync } from "node:fs";
 
 export interface CLIProviderOptions {
   path: string;
@@ -15,7 +16,7 @@ export abstract class CLIProvider implements Provider {
     this.model = model || "";
   }
 
-async *stream(
+  async *stream(
     messages: Message[],
     _model: string,
     _options?: StreamOptions
@@ -30,7 +31,8 @@ async *stream(
 
 export class ClaudeCLIProvider extends CLIProvider {
   constructor(model: string = "claude-sonnet-4") {
-    super("/Users/petersmith/.bun/bin/claude", model);
+    const cliPath = findCLI("claude");
+    super(cliPath, model);
   }
 
   protected buildPrompt(messages: Message[]): string {
@@ -45,7 +47,6 @@ export class ClaudeCLIProvider extends CLIProvider {
     const tempFile = `${tempDir}/prompt.txt`;
     await Bun.write(tempFile, `Please respond with the complete answer. Do not ask follow-up questions.\n\n${prompt}`);
 
-    let output = "";
     const proc = Bun.spawn([this.cliPath, "--print", "-f", tempFile], {
       stdout: "pipe",
       stderr: "inherit",
@@ -59,8 +60,8 @@ export class ClaudeCLIProvider extends CLIProvider {
         const { value, done } = await reader.read();
         if (done) break;
         if (value) {
-          output += decoder.decode(value, { stream: true });
-          yield output;
+          // Yield only the new chunk, not accumulated output
+          yield decoder.decode(value, { stream: true });
         }
       }
     } finally {
@@ -74,7 +75,8 @@ export class ClaudeCLIProvider extends CLIProvider {
 
 export class GeminiCLIProvider extends CLIProvider {
   constructor(model: string = "gemini-1.5-flash") {
-    super("/Users/petersmith/.bun/bin/gemini", model);
+    const cliPath = findCLI("gemini");
+    super(cliPath, model);
   }
 
   protected buildPrompt(messages: Message[]): string {
@@ -83,7 +85,6 @@ export class GeminiCLIProvider extends CLIProvider {
   }
 
   async *streamFromCLI(prompt: string): AsyncIterable<string> {
-    let output = "";
     const proc = Bun.spawn([this.cliPath, "-p", "-m", this.model, prompt], {
       stdout: "pipe",
       stderr: "inherit",
@@ -97,8 +98,8 @@ export class GeminiCLIProvider extends CLIProvider {
         const { value, done } = await reader.read();
         if (done) break;
         if (value) {
-          output += decoder.decode(value, { stream: true });
-          yield output;
+          // Yield only the new chunk, not accumulated output
+          yield decoder.decode(value, { stream: true });
         }
       }
     } finally {
@@ -111,7 +112,8 @@ export class GeminiCLIProvider extends CLIProvider {
 
 export class KiloCLIProvider extends CLIProvider {
   constructor() {
-    super("/Users/petersmith/.bun/bin/kilo", "auto");
+    const cliPath = findCLI("kilo");
+    super(cliPath, "auto");
   }
 
   protected buildPrompt(messages: Message[]): string {
@@ -133,48 +135,40 @@ export class KiloCLIProvider extends CLIProvider {
   }
 }
 
+/**
+ * Find CLI in PATH using Bun.which(), with fallback locations
+ * Synchronous - uses PATH resolution then checks common locations
+ */
+function findCLI(name: string): string {
+  // Try Bun.which first (cross-platform PATH resolution)
+  const found = Bun.which(name);
+  if (found) return found;
+
+  // Fallback to common macOS Homebrew/Linux locations
+  const homebrewPaths = [
+    `/opt/homebrew/bin/${name}`,
+    `/usr/local/bin/${name}`,
+    `${process.env.HOME}/.bun/bin/${name}`,
+  ];
+
+  for (const path of homebrewPaths) {
+    if (existsSync(path)) {
+      return path;
+    }
+  }
+
+  // Return the name itself as last resort (will fail at runtime if not in PATH)
+  return name;
+}
+
 export function detectCLIs(): {
   claude: boolean;
   gemini: boolean;
   kilo: boolean;
 } {
-  const claudePath = "/Users/petersmith/.bun/bin/claude";
-  const geminiPath = "/Users/petersmith/.bun/bin/gemini";
-  const kiloPath = "/Users/petersmith/.bun/bin/kilo";
-
-  let claude = false;
-  let gemini = false;
-  let kilo = false;
-
-  try {
-    require.resolve(claudePath);
-    claude = true;
-  } catch {}
-
-  try {
-    require.resolve(geminiPath);
-    gemini = true;
-  } catch {}
-
-  try {
-    require.resolve(kiloPath);
-    kilo = true;
-  } catch {}
-
-  return { claude, gemini, kilo };
-}
-
-export async function getCliPath(_app: string): Promise<string | null> {
-  const paths = [
-    "/Users/petersmith/.bun/bin/claude",
-    "/opt/homebrew/bin/claude",
-  ];
-
-  for (const path of paths) {
-    try {
-      require.resolve(path);
-      return path;
-    } catch {}
-  }
-  return null;
+  return {
+    claude: Bun.which("claude") !== null,
+    gemini: Bun.which("gemini") !== null,
+    kilo: Bun.which("kilo") !== null,
+  };
 }
